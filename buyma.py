@@ -12,7 +12,7 @@ def init_driver():
     is_mikistyle = True
     options = webdriver.ChromeOptions()
     # ヘッドレスモード
-    # options.add_argument('--headless')
+    options.add_argument('--headless')
     # 絶対パス指定
     login_data_path = fr"C:\Users\boost\Documents\SourceTreePrivate\selenium-login\{'mikistyle' if is_mikistyle else 'mikistore'}"
     options.add_argument('--user-data-dir=' + login_data_path)
