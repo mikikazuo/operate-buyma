@@ -38,8 +38,13 @@ class Bot:
         # 表示件数を100にする
         self.page.select_option(".js-row-count-options", "100")
 
-        # すべての商品の選択
+        # すべての商品の選択 (ON -> OFF -> ONで確実につける)
         self.page.click(".js-checkbox-check-all")
+        time.sleep(1)
+        self.page.click(".js-checkbox-check-all")
+        time.sleep(1)
+        self.page.click(".js-checkbox-check-all")
+
         self.page.click(".my_action_output")
 
     def update_deadline(self, deadline):
@@ -112,6 +117,7 @@ class Bot:
 
             # 出品中の商品一覧ページに移動
             self.page.goto(self.url + f"&page={i + 1}")
+            time.sleep(5)
             # すべてのチェックボックスを取得
             checkboxes = self.page.locator("td.fab-checkbox-wrap input").all()
 
@@ -468,14 +474,14 @@ class Bot:
 
 if __name__ == "__main__":
     bot = Bot()
-    #time.sleep(555)
-    #bot.update_deadline("2026/04/05")
 
+    #bot.update_deadline("2026/06/14")
     # bot.set_unexhibited(4100)
-    # bot.update_none_stock()
 
-    # bot.increase_price()
-    # bot.discount_price(utils.discount_percent)
-    # bot.update_size()
+    #bot.update_none_stock()
+
+    #bot.increase_price()
+    #bot.discount_price(utils.discount_percent)
+    #bot.update_size()
 
     bot.delete()
