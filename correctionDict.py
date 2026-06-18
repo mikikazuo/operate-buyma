@@ -51,6 +51,7 @@ def correction(chara):
         u"\u00c3": u"a",  # Ãの修正
         u"\u00a9": u"c",  # ©の修正
         u"\u00b2": u"^2",
+        u"ä": u"a",
         u"\u20ac": u"",
         u"Â": u"A",
         u"\ufffc": u"",
