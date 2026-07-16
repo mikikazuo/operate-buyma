@@ -78,11 +78,14 @@ class Bot:
             self.page.click("#completeButton")
             print(f"ページ {i + 1} を更新")
 
-    def update_none_stock(self):
+    def update_none_stock(self, category=None):
         """
         在庫なし商品の出品停止
         メインデータに存在しないURL（削除された商品）をBUYMAから削除
+        :param category: カテゴリの指定（一部一致）
         """
+        import re
+        
         # メインデータ（スクレイピング元の最新データ）を読み込む
         main_data_list = utils.load_json(utils.main_data) or []
         # アップロードデータ（BUYMA出品済みデータ）を読み込む
@@ -111,12 +114,30 @@ class Bot:
 
         deleted_count = 0  # 削除された商品数
 
+        current_url = self.url
+        
+        if category:
+            self.page.goto(current_url)
+            time.sleep(5)
+            # フィルタ設定
+            self.page.locator(".Select-multi-value-wrapper").first.click()
+            time.sleep(1)
+            self.page.locator(f'.Select-option[aria-label*="{category}"]').first.click()
+            time.sleep(1)
+            self.page.locator(".bmm-c-input-panel__button-search").click()
+            time.sleep(5)
+            current_url = self.page.url
+            # ハッシュ(#)が含まれている場合は除去する
+            current_url = current_url.split('#')[0]
+            current_url = re.sub(r'([?&])page=\d+', r'\1', current_url)
+
         # ページを逆順で処理
         for i in reversed(range(51)):
             print(f"ページ : {i + 1}")
 
+            sep = "" if current_url.endswith("?") or current_url.endswith("&") else ("&" if "?" in current_url else "?")
             # 出品中の商品一覧ページに移動
-            self.page.goto(self.url + f"&page={i + 1}")
+            self.page.goto(current_url + sep + f"page={i + 1}")
             time.sleep(5)
             # すべてのチェックボックスを取得
             checkboxes = self.page.locator("td.fab-checkbox-wrap input").all()
