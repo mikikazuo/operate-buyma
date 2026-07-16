@@ -116,9 +116,11 @@ class Bot:
 
         current_url = self.url
         
+        # ページネーションを取得するために、まずは一覧画面(1ページ目)を開く
+        self.page.goto(current_url)
+        time.sleep(5)
+
         if category:
-            self.page.goto(current_url)
-            time.sleep(5)
             # フィルタ設定
             self.page.locator(".Select-multi-value-wrapper").first.click()
             time.sleep(1)
@@ -131,8 +133,26 @@ class Bot:
             current_url = current_url.split('#')[0]
             current_url = re.sub(r'([?&])page=\d+', r'\1', current_url)
 
+        # 最後のページ番号を取得
+        max_page = 1
+        last_btn = self.page.locator('.paging a.box:has-text("最後")')
+        if last_btn.count() > 0:
+            href = last_btn.first.get_attribute("href")
+            if href:
+                m = re.search(r'page=(\d+)', href)
+                if m:
+                    max_page = int(m.group(1))
+        else:
+            # 「最後」ボタンがない場合は、表示されているページ番号から最大値を取得
+            pages = self.page.locator(".paging .page").all_text_contents()
+            valid_pages = [int(p.strip()) for p in pages if p.strip().isdigit()]
+            if valid_pages:
+                max_page = max(valid_pages)
+
+        print(f"最大ページ数 : {max_page}")
+
         # ページを逆順で処理
-        for i in reversed(range(51)):
+        for i in reversed(range(max_page)):
             print(f"ページ : {i + 1}")
 
             sep = "" if current_url.endswith("?") or current_url.endswith("&") else ("&" if "?" in current_url else "?")
