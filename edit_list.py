@@ -19,7 +19,7 @@ class PageMode:
 
 
 class Bot:
-    page_mode = PageMode.Request
+    page_mode = PageMode.Listing
 
     def __init__(self):
         self.context, self.page = browser_ini(utils.user_data_dir)
@@ -30,6 +30,16 @@ class Bot:
         要素表示までの待機
         """
         self.page.wait_for_selector(selector, timeout=20000)
+
+    def check_not_found_error(self):
+        """
+        エラー通知「お客様がお探しのページは見つかりませんでした。」が表示されているかチェック。
+        """
+        if self.page.locator(".error_box .message_error").count() > 0:
+            msg = self.page.locator(".error_box .message_error").first.text_content()
+            if "見つかりませんでした" in msg:
+                return True
+        return False
 
     def all_select_temp(self):
         """
@@ -225,6 +235,15 @@ class Bot:
             self.page.goto(
                 f"https://www.buyma.com/my/sell/{target['upurl']}/edit?tab=b"
             )
+
+            if self.check_not_found_error():
+                print(f"エラー: ページが見つかりません。出品状態をFalseに更新します ({target['url']})")
+                for modify in upload_modify_list:
+                    if modify["url"] == target["url"]:
+                        modify["exhibited"] = False
+                        break
+                utils.save_json(upload_modify_list, utils.upload_data)
+                continue
 
             self.driver_wait(".bmm-c-text-field")
             text_field = self.page.locator(".bmm-c-text-field")
@@ -441,6 +460,15 @@ class Bot:
             self.page.goto(
                 f"https://www.buyma.com/my/sell/{target['upurl']}/edit?tab=b"
             )
+
+            if self.check_not_found_error():
+                print(f"エラー: ページが見つかりません。出品状態をFalseに更新します ({target['url']})")
+                for item in upload_edited_data:
+                    if item["url"] == target["url"]:
+                        item["exhibited"] = False
+                        break
+                utils.save_json(upload_edited_data, utils.upload_data)
+                continue
 
             # URLに「buyeritemdetail」が含まれる場合はスキップして削除
             current_url = self.page.url
