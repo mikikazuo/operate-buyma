@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+import atexit
 import json
 import os
 from collections import OrderedDict
@@ -8,10 +9,11 @@ img_dir = r".\img\madeimg"
 translate_path = "json/twoFour_detail_dict.json"
 
 # 対象サイト ("ssense" or "giglio")
-site = "giglio"
+site = "ssense"
 
 # mikistyleかどうか
 is_mikistyle = is_women = True
+
 
 # サイズがない場合の　特定ワード
 one_size_name = "one size one size"
@@ -36,8 +38,8 @@ if site == "giglio":
     img_url = ""
     product_url = "https://www.giglio.com/ja-jp/"
     # giglio の場合は男女ともに _shoes という接尾辞が付く
-    main_data = f"{site}/{gender_prefix}_shoes.json"
-    upload_data = f"{site}/{gender_prefix}_shoes_upload.json"
+    main_data = f"{site}/{gender_prefix}.json"
+    upload_data = f"{site}/{gender_prefix}_upload.json"
 else:
     img_url = "https://img.ssensemedia.com/images/"
     product_url = "https://www.ssense.com/ja-jp/men/product/"
@@ -110,10 +112,16 @@ def browser_ini(login_data_path, headless=False):
         tuple: (context, page)
     """
     playwright = sync_playwright().start()
+    # スクリプト終了時に自動的にplaywrightを停止
+    atexit.register(playwright.stop)
+
+    # 相対パスを絶対パスに変換（Playwrightは絶対パスが必要）
+    abs_user_data_dir = os.path.abspath(login_data_path)
+    print(f"✓ user-data-dir を読込: {abs_user_data_dir}")
 
     # persistent_context を使用してユーザーデータを引き継ぐ
     context = playwright.chromium.launch_persistent_context(
-        user_data_dir=login_data_path,
+        user_data_dir=abs_user_data_dir,
         headless=headless,
         channel="chrome",  # システムのChromeを使う場合はコメント解除
         args=[
@@ -176,8 +184,8 @@ def make_clear_price(price: float) -> int:
 
 def make_price(price: float, rate: float) -> int:
     """販売価格を計算"""
-    export_border = 0
-    export_price = 2800
+    export_border = 60000
+    export_price = 4000
 
     tax_price = price * rate
     if price < export_border:

@@ -19,7 +19,7 @@ class PageMode:
 
 
 class Bot:
-    page_mode = PageMode.Listing
+    page_mode = PageMode.Request
 
     def __init__(self):
         self.context, self.page = browser_ini(utils.user_data_dir)
@@ -544,13 +544,13 @@ class Bot:
 if __name__ == "__main__":
     bot = Bot()
 
-    #bot.update_deadline("2026/06/14")
+    # bot.update_deadline("2026/09/13")
     # bot.set_unexhibited(4100)
 
-    #bot.update_none_stock()
-
-    #bot.increase_price()
-    #bot.discount_price(utils.discount_percent)
-    #bot.update_size()
+    # bot.update_none_stock()
+    #
+    # bot.increase_price()
+    # bot.discount_price(utils.discount_percent)
+    # bot.update_size()
 
     bot.delete()

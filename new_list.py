@@ -590,9 +590,10 @@ def checker():
 if __name__ == "__main__":
     """メインエントリーポイント"""
     context, page = utils.browser_ini(utils.user_data_dir)
-    if utils.is_check:
-        checker()
-    else:
-        process_products(page)
-
-    context.close()
+    try:
+        if utils.is_check:
+            checker()
+        else:
+            process_products(page)
+    finally:
+        context.close()
