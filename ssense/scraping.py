@@ -104,6 +104,9 @@ class SSenseScraper:
                     continue
                 text = option.inner_text()
                 if text and text != "サイズの選択":
+                    # 在庫なしのサイズはスキップ
+                    if "在庫なし" in text:
+                        continue
                     clean = re.sub(r"\s*-\s*残り\s*\d+", "", text).strip()
                     if clean and clean not in seen:
                         sizes.append(clean)
