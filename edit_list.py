@@ -19,7 +19,7 @@ class PageMode:
 
 
 class Bot:
-    page_mode = PageMode.Request
+    page_mode = PageMode.Listing
 
     def __init__(self):
         self.context, self.page = browser_ini(utils.user_data_dir)
@@ -251,7 +251,7 @@ class Bot:
             fields[-4].click()
             fields[-4].fill(str(target["new_price"]))
             self.page.locator(".bmm-c-btn").last.click()
-            self.page.wait_for_url("https://www.buyma.com/my/sell/completed")
+            self.page.wait_for_url("https://www.buyma.com/my/sell/completed*")
 
             for modify in upload_modify_list:
                 if modify["url"] == target["url"]:
@@ -544,12 +544,12 @@ class Bot:
 if __name__ == "__main__":
     bot = Bot()
 
-    # bot.update_deadline("2026/09/13")
+    #bot.update_deadline("2026/10/11")
     # bot.set_unexhibited(4100)
 
-    # bot.update_none_stock()
-    #
-    # bot.increase_price()
+    #bot.update_none_stock()
+
+    bot.increase_price()
     # bot.discount_price(utils.discount_percent)
     # bot.update_size()
 
