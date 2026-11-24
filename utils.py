@@ -48,15 +48,15 @@ else:
 
 
 if is_women:
-    up_url = "https://www.buyma.com/my/sell/new?copy_id=126842091&tab=b"
+    up_url = "https://www.buyma.com/my/sell/new?copy_id=138112482&tab=b"
     pass_category_list = [
         "キャンドル",
         "サングラス",
-        "アウター",
-        "スウェット・トレーナー",
-        # "Tシャツ・カットソー",
-        # "ショートパンツ",
-        "ニット・セーター",
+        #"アウター",
+        #"スウェット・トレーナー",
+        "Tシャツ・カットソー",
+        "ショートパンツ",
+        #"ニット・セーター",
         "ライフスタイル" "スーツケース",
     ]
 else:
@@ -76,7 +76,10 @@ else:
     ]
 
 # 除外ブランド（小文字で登録）
-pass_brands = {"converse", "dior", "acne studios", "dolce & gabbana", "barbour"}
+pass_brands = {"converse", "dior", "acne studios", "dolce & gabbana", "barbour", "anine bing"}
+
+# 除外タイトルキーワード（小文字で登録）
+pass_titles = {"converse", "harrington", "ハリントン"}
 
 # 商品のタイトルキーワードの翻訳
 title_path = "json/titleDict.json"
@@ -88,6 +91,10 @@ start_index = 0
 my_rate = 1.2 * 1.077
 
 discount_min_rate = 1.1
+
+# 割引率（%）
+discount_percent = 5
+
 
 # これより大きい金額は除外
 over_price = 150000

@@ -19,7 +19,7 @@ class PageMode:
 
 
 class Bot:
-    page_mode = PageMode.Listing
+    page_mode = PageMode.Request
 
     def __init__(self):
         self.context, self.page = browser_ini(utils.user_data_dir)
@@ -64,7 +64,7 @@ class Bot:
         """
         for i in range(51):
             self.page.goto(
-                f"https://www.buyma.com/my/sell/?status={PageMode.Request}"
+                f"https://www.buyma.com/my/sell/?status={Bot.page_mode}"
                 + (f"&page={i + 1}" if Bot.page_mode == PageMode.Listing else "")
             )
 
@@ -437,9 +437,10 @@ class Bot:
                 if not new_data.get("size"):
                     continue
                 # new_data["size"]はリストなので、各要素を正規化
-                new_size = [normalize_size(s) for s in new_data["size"]]
-                # サイズのリストが違う 何らかの更新が必要
-                if new_data["url"] == upload["url"] and new_size != upload["size"]:
+                new_size = [normalize_size(s).strip() for s in new_data["size"] if s]
+                upload_size = [normalize_size(s).strip() for s in upload["size"] if s] if isinstance(upload.get("size"), list) else []
+                # サイズのリストが違う 何らかの更新が必要（順序や空白の違いを無視して判定）
+                if new_data["url"] == upload["url"] and set(new_size) != set(upload_size):
                     target_updates.append(
                         {
                             "url": upload["url"],
@@ -489,7 +490,7 @@ class Bot:
             if added or updated:
                 print("変更")
                 self.page.locator(".bmm-c-btn").last.click()
-                self.page.wait_for_url("https://www.buyma.com/my/sell/completed")
+                self.page.wait_for_url("https://www.buyma.com/my/sell/completed*")
 
                 for modify in upload_edited_data:
                     if modify["url"] == target["url"]:
@@ -498,6 +499,12 @@ class Bot:
                 utils.save_json(upload_edited_data, utils.upload_data)
             else:
                 print("変更なし")
+                # 画面上に変更がなかった場合でもデータを最新化して次回の不要な遷移を防ぐ
+                for modify in upload_edited_data:
+                    if modify["url"] == target["url"]:
+                        modify["size"] = target["new_size"]
+                        break
+                utils.save_json(upload_edited_data, utils.upload_data)
 
     def set_unexhibited(self, count):
         """
@@ -544,13 +551,13 @@ class Bot:
 if __name__ == "__main__":
     bot = Bot()
 
-    #bot.update_deadline("2026/10/11")
+    #bot.update_deadline("2026/11/16")
     # bot.set_unexhibited(4100)
 
-    #bot.update_none_stock()
-
-    bot.increase_price()
-    # bot.discount_price(utils.discount_percent)
+    # bot.update_none_stock()
+    # bot.increase_price()
     # bot.update_size()
+
+    #bot.discount_price(utils.discount_percent)
 
     bot.delete()

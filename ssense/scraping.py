@@ -39,6 +39,8 @@ class SSenseScraper:
 
     BASE_URL = "https://www.ssense.com/ja-jp"
     DEFAULT_USER_DATA_DIR = Path("../user_data/chrome_user_data")
+    # Cloudflare再接続時の待機秒数
+    CLOUDFLARE_WAIT_SEC = 30
 
     def __init__(self, headless: bool = False):
         self.headless = headless
@@ -86,6 +88,71 @@ class SSenseScraper:
             pass
         return default
 
+    # ── Cloudflare BOTチェック対策 ──────────────────────────────────────
+
+    def _detect_cloudflare(self, page: Page) -> bool:
+        """Cloudflareチャレンジページが表示されているかを判定"""
+        try:
+            title = page.title()
+            body_text = page.locator("body").inner_text() or ""
+            return (
+                "Just a moment" in title
+                or "しばらくお待ちください" in title
+                or "Checking your browser" in body_text
+                or "Cloudflare" in body_text
+                or "Please enable JavaScript" in body_text
+            )
+        except Exception:
+            return False
+
+    def _handle_cloudflare(
+        self, context, page: Page, url: str
+    ) -> tuple:
+        """Cloudflare検出時にブラウザを再起動して再接続する
+
+        Returns:
+            tuple: (new_context, new_page)
+        """
+        print("\n" + "=" * 60)
+        print("⚠️ Cloudflare challenge detected. ブラウザを再起動します...")
+        print(f"  {self.CLOUDFLARE_WAIT_SEC}秒待機してから再接続します")
+        print("=" * 60 + "\n")
+
+        # コンテキスト（ブラウザ）を閉じる
+        try:
+            context.close()
+        except Exception:
+            pass
+
+        time.sleep(self.CLOUDFLARE_WAIT_SEC)
+
+        # ブラウザを再起動
+        print("🔄 ブラウザを再起動中...")
+        new_context, new_page = browser_ini(
+            str(self.DEFAULT_USER_DATA_DIR), headless=self.headless
+        )
+
+        # 元のURLに再アクセス
+        new_page.goto(url, timeout=60000, wait_until="domcontentloaded")
+        time.sleep(5)
+
+        print("✓ 再接続完了\n")
+        return new_context, new_page
+
+    def _goto_with_cloudflare_guard(
+        self, context, page: Page, url: str, **goto_kwargs
+    ) -> tuple:
+        """page.gotoを実行し、Cloudflareが検出された場合はブラウザ再起動して再試行する
+
+        Returns:
+            tuple: (context, page) — 再起動が発生した場合は新しいオブジェクト
+        """
+        page.goto(url, **goto_kwargs)
+        if self._detect_cloudflare(page):
+            context, page = self._handle_cloudflare(context, page, url)
+        return context, page
+
+    # ── 商品データ抽出 ──────────────────────────────────────────────────
 
     def _extract_price(self, page: Page) -> int | None:
         try:
@@ -218,15 +285,25 @@ class SSenseScraper:
             pass
         return None
 
-    def scrape_product(self, page: Page, url: str) -> ProductData | None:
+    def scrape_product(
+        self, context, page: Page, url: str
+    ) -> tuple[ProductData | None, object, Page]:
+        """商品ページをスクレイピングする
+
+        Returns:
+            tuple: (ProductData | None, context, page)
+                Cloudflare再接続によりcontext/pageが差し替わる可能性があるためタプルで返す
+        """
         try:
-            page.goto(url, wait_until="domcontentloaded")
+            context, page = self._goto_with_cloudflare_guard(
+                context, page, url, wait_until="domcontentloaded"
+            )
 
             # 画像が読み込まれるまで少し待つ
             page.wait_for_timeout(2000)
 
             if self._extract_price(page) is None:
-                return None
+                return None, context, page
 
             url_parts = parse.urlparse(url).path.split("/")
 
@@ -245,7 +322,7 @@ class SSenseScraper:
             
             product_code = self._extract_product_code(page)
 
-            return ProductData(
+            product = ProductData(
                 url=self._get_product_key(url),
                 gender=url_parts[2] if len(url_parts) > 2 else None,
                 category=category,
@@ -260,9 +337,10 @@ class SSenseScraper:
                 origin=self._extract_origin(page),
                 img=self._extract_images(page, product_code=product_code),
             )
+            return product, context, page
         except Exception as e:
             print(f"  ✗ エラー ({url}): {e}")
-            return None
+            return None, context, page
 
     def _collect_product_urls(self, page: Page) -> list[str]:
         urls = []
@@ -297,19 +375,27 @@ class SSenseScraper:
 
     def _scrape_listing_with_page(
             self,
+            context,
             page,
             start_url: str,
             output_file: str,
             scraped_urls: set,
             max_pages: int | None = None,
             delay: float = 1.0,
-    ) -> dict:
-        """既存のページを使って一覧スクレイピングを実行（ブラウザ共有用内部メソッド）"""
+    ) -> tuple[dict, object, Page]:
+        """既存のページを使って一覧スクレイピングを実行（ブラウザ共有用内部メソッド）
+
+        Returns:
+            tuple: (stats, context, page)
+                Cloudflare再接続によりcontext/pageが差し替わる可能性があるためタプルで返す
+        """
         output_path = Path(output_file)
         stats = {"total": 0, "new": 0, "skipped": 0, "errors": 0}
 
-        # 最初のページをロードして max_pages を取得
-        page.goto(start_url, wait_until="domcontentloaded")
+        # 最初のページをロードして max_pages を取得（Cloudflareガード付き）
+        context, page = self._goto_with_cloudflare_guard(
+            context, page, start_url, wait_until="domcontentloaded"
+        )
         time.sleep(delay * 2)
         if max_pages is None:
             max_pages = self._get_max_pages(page)
@@ -319,7 +405,9 @@ class SSenseScraper:
             if page_num > 1:
                 list_url = f"{start_url}?page={page_num}"
                 print(f"\n=== ページ {page_num}: {list_url} ===")
-                page.goto(list_url, wait_until="domcontentloaded")
+                context, page = self._goto_with_cloudflare_guard(
+                    context, page, list_url, wait_until="domcontentloaded"
+                )
                 time.sleep(delay * 2)
             else:
                 list_url = start_url
@@ -341,7 +429,8 @@ class SSenseScraper:
 
                 print(f"  [{i}/{len(product_urls)}] ⏳ {short_name}")
 
-                if product := self.scrape_product(page, url):
+                product, context, page = self.scrape_product(context, page, url)
+                if product and product.img:
                     self._append_to_file(output_path, product)
                     scraped_urls.add(product_key)
                     print(f"    ✓ {product.brand} - {product.title[:25]}")
@@ -351,7 +440,7 @@ class SSenseScraper:
 
                 time.sleep(delay)
 
-        return stats
+        return stats, context, page
 
 
     def scrape_categories(
@@ -376,8 +465,8 @@ class SSenseScraper:
                 print(f"\n{'#' * 50}")
                 print(f"# カテゴリ: {category_url}")
                 print(f"{'#' * 50}")
-                stats = self._scrape_listing_with_page(
-                    page, category_url, output_file, scraped_urls, max_pages, delay
+                stats, context, page = self._scrape_listing_with_page(
+                    context, page, category_url, output_file, scraped_urls, max_pages, delay
                 )
                 for key in total_stats:
                     total_stats[key] += stats[key]
@@ -406,14 +495,18 @@ if __name__ == "__main__":
     # 特定カテゴリのみにする場合は対象URLを個別に列挙する
     if is_mikistyle:
         category_urls = [
-            "https://www.ssense.com/ja-jp/women/shoes",
-            "https://www.ssense.com/ja-jp/women/accessories",
+            "https://www.ssense.com/ja-jp/women/jackets-coats",
+            "https://www.ssense.com/ja-jp/women/sweaters",
+            "https://www.ssense.com/ja-jp/women/boots",
+            "https://www.ssense.com/ja-jp/women/jeans",
         ]
         output_file = "women.json"
     else:
         category_urls = [
-            "https://www.ssense.com/ja-jp/men/shoes",
-            "https://www.ssense.com/ja-jp/men/accessories",
+            # "https://www.ssense.com/ja-jp/men/shoes",
+            # "https://www.ssense.com/ja-jp/men/accessories",
+            # "https://www.ssense.com/ja-jp/men/bags",
+            "https://www.ssense.com/ja-jp/men/tops"
         ]
         output_file = "men.json"
     # ────────────────────────────────────────────────────────────────────

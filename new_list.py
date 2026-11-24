@@ -362,7 +362,7 @@ class BuymaExhibitor:
 
         # 完了ページまで待機
         self.page.wait_for_url(
-            "https://www.buyma.com/my/sell/completed", timeout=self.timeout
+            "https://www.buyma.com/my/sell/completed*", timeout=self.timeout
         )
 
 
@@ -404,9 +404,9 @@ def should_skip_product(data: dict, uploaded_urls: set) -> bool:
             if get_east_asian_width_count(size) > 26:
                 return True
 
-    # 除外ブランド
+    # 除外タイトルキーワード
     title_lower = data.get("title", "").lower()
-    if "converse" in title_lower or "harrington" in title_lower:
+    if any(keyword.lower() in title_lower for keyword in utils.pass_titles):
         return True
 
     return False

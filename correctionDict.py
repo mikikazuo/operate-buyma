@@ -32,6 +32,7 @@ def correction(chara):
         u"ú": u"u",  # úの修正
         u"ö": u"お",  # öの修正
         u"繡": u"繍",  # 繡の修正
+        u"³": u"",
 
         # なぜか正規表現の検索に引っかからない
         u"\u00ab": u"<",  # iの修正
@@ -69,6 +70,9 @@ def correction(chara):
         u"\ud2bc": u"",
         u"\ub974": u"",
         u"\ufeff": u"",
+        u"Ự": u"u",
+        u"Đ": u"D",
+        u"Ạ": u"A"
     })
     modified = chara.translate(table)
     return modified

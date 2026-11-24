@@ -355,6 +355,9 @@ if __name__ == "__main__":
     # 性別（is_women）に応じて取得URLを切り替え
     gender_path = "woman" if utils.is_women else "man"
     target_url = f"https://www.giglio.com/ja-jp/{gender_path}/shoes/"
+    # target_url = f"https://www.giglio.com/ja-jp/{gender_path}/clothing/shirt/"
+    # target_url = f"https://www.giglio.com/ja-jp/{gender_path}/accessories/"
+    # target_url = f"https://www.giglio.com/ja-jp/{gender_path}/bags/"
 
     # 全ページを取得（utils.main_data を出力先に指定することでフォルダ構成と自動連動）
     scraper.scrape_listing(target_url, output_file=utils.main_data)
