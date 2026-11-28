@@ -414,11 +414,17 @@ def should_skip_product(data: dict, uploaded_urls: set) -> bool:
 
 def _is_excluded_category(data: dict) -> bool:
     """除外カテゴリーか判定"""
+    if not data.get("category"):
+        return True
+
     json_data = utils.load_json(utils.category_dict_path)
     category = json_data[f'depth{len(data["category"])}']
 
     for depth in data["category"]:
         category = category[depth]
+
+    if category is None:
+        return True
 
     if isinstance(category, dict):
         category = category.get("other", [])

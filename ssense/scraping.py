@@ -495,10 +495,12 @@ if __name__ == "__main__":
     # 特定カテゴリのみにする場合は対象URLを個別に列挙する
     if is_mikistyle:
         category_urls = [
-            "https://www.ssense.com/ja-jp/women/jackets-coats",
-            "https://www.ssense.com/ja-jp/women/sweaters",
-            "https://www.ssense.com/ja-jp/women/boots",
-            "https://www.ssense.com/ja-jp/women/jeans",
+            # "https://www.ssense.com/ja-jp/women/jackets-coats",
+            # "https://www.ssense.com/ja-jp/women/sweaters",
+            # "https://www.ssense.com/ja-jp/women/boots",
+            # "https://www.ssense.com/ja-jp/women/jeans",
+            #"https://www.ssense.com/ja-jp/women/sneakers",
+            "https://www.ssense.com/ja-jp/women/accessories"
         ]
         output_file = "women.json"
     else:

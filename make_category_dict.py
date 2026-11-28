@@ -51,7 +51,9 @@ class CategoryManager:
         new_categories = []
 
         for data in main_data:
-            category = data["category"]
+            category = data.get("category")
+            if not category:
+                continue
             depth = len(category)
             depth_key = self.get_depth_key(depth)
 
